@@ -4,7 +4,6 @@ import android.util.Log
 import java.lang.RuntimeException
 import java.util.concurrent.ThreadFactory
 import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.thread
 import kotlin.concurrent.withLock
 import kotlin.random.Random
 
@@ -27,7 +26,7 @@ class Solver : Runnable {
     private val killLock = ReentrantLock()
     private var finished = false
     private var working = false
-    private val maxAllowedIterations = 1000
+    private val maxAllowedIteration = 1000
 
     private var kill = false
         get () {
@@ -113,7 +112,6 @@ class Solver : Runnable {
         if (isWorking() || puzzle?.isFinished() == true) {
             return
         }
-        getPuzzle()?.ereaseVariables()
         setWorking(true)
         setFinished(false)
         kill = false
@@ -127,6 +125,7 @@ class Solver : Runnable {
             return
         }
         var toSolve = Puzzle(getPuzzle()!!)
+        toSolve.ereaseVariables()
 
         //srand(0)
         /*
@@ -153,7 +152,7 @@ class Solver : Runnable {
 
         var iteration = 0
         var localFinished = false
-        while (!localFinished && iteration < maxAllowedIterations) {
+        while (!localFinished && iteration < maxAllowedIteration) {
             if (c == 8 && r == 8) {
                 Log.d("Solver", "End of line.")
             }

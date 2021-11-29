@@ -103,7 +103,7 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
             solver.getPuzzle()!!.setFieldAsVariable(row, column, value)
             solver.getPuzzle()!!.checkValidityOfField(row, column)
 
-            if (solver.getPuzzle()!!.isFinished() /*&& !solver.isFinished()*/ ) {
+            if (solver.getPuzzle()!!.isFinished() && !solver.isFinished()) {
                 buildFinishAlert()?.show()
             }
         }
@@ -141,11 +141,10 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
     }
 
     private fun loadLatestPuzzle() {
+        solver.stop()
         if (puzzles.size > 0) {
             val sorted = puzzles.sortedBy { p -> p.timeCreated }
-            solver.setPuzzle(sorted.last())
-            solver.checkValidity()
-            solver.setFinished(false)
+            setSelectedPuzzle(sorted.last())
         }
         else {
             initNewPuzzle()
@@ -164,8 +163,14 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
 
     override fun getNotifiedAboutFinish() {
         runOnUiThread {
-            invalidatePuzzleViewFunction?.let { it() }
+            val toReplace = puzzles.find { p -> p.ID == solver.getPuzzle()!!.ID }
+            if (toReplace != null) {
+                puzzles.remove(toReplace)
+                puzzles.add(solver.getPuzzle()!!)
+            }
+            puzzles.sortBy { p -> p.timeCreated }
             Snackbar.make(binding.root, "Solver finished the puzzle.", Snackbar.LENGTH_SHORT).show()
+            invalidatePuzzleViewFunction?.let { it() }
         }
     }
 
@@ -219,13 +224,17 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
     }
 
     override fun setSelectedPuzzle(puzzle: Puzzle) {
+        if (solver.getPuzzle() == puzzle) {
+            return
+        }
         solver.setPuzzle(puzzle)
+        solver.checkValidity()
+        solver.setFinished(puzzle.isFinished())
     }
 
     override fun removePuzzle(puzzle: Puzzle) {
         puzzles.remove(puzzle)
         if (solver.getPuzzle() == puzzle) {
-            solver.stop()
             loadLatestPuzzle()
         }
     }
