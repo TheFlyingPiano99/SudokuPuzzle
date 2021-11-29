@@ -1,9 +1,9 @@
 package bme.mobweb.lab.sudoku
 
+import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.DialogInterface
 import android.os.Bundle
-import android.os.Looper
 import android.text.InputType
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
@@ -15,14 +15,19 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.EditText
+import androidx.recyclerview.widget.LinearLayoutManager
+import bme.mobweb.lab.sudoku.adapter.PuzzleAdapter
 import bme.mobweb.lab.sudoku.databinding.ActivityMainBinding
 import bme.mobweb.lab.sudoku.model.Solver
 import bme.mobweb.lab.sudoku.model.Puzzle
 import com.google.android.material.snackbar.Snackbar
 import hu.bme.mobweb.lab.sudoku.sqlite.PersistentDataHelper
 import java.lang.RuntimeException
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.collections.ArrayList
 
-class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.FinishHandler {
+class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.FinishHandler, SelectFragment.PuzzleListHolder {
     private companion object {
         private const val TAG = "MainActivity"
     }
@@ -34,7 +39,6 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
     private var puzzles : MutableList<Puzzle> = ArrayList()
     private var solver = Solver()
     private var invalidatePuzzleViewFunction : (() -> Unit)? = null
-
     private var prevTime : Long = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,6 +89,7 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
     }
 
 
+
     override fun initNewPuzzle() {
         puzzles.add(solver.initNewPuzzle())
     }
@@ -93,10 +98,14 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
         return solver.getPuzzle()!!.getField(row, column)
     }
 
-    override fun setFieldOfCurrentPuzzle(row: Int, column: Int, value: Int) {
+    private fun setFieldOfCurrentPuzzle(row: Int, column: Int, value: Int) {
         try {
             solver.getPuzzle()!!.setFieldAsVariable(row, column, value)
             solver.getPuzzle()!!.checkValidityOfField(row, column)
+
+            if (solver.getPuzzle()!!.isFinished() /*&& !solver.isFinished()*/ ) {
+                buildFinishAlert()?.show()
+            }
         }
         catch (e : RuntimeException) {
             Log.e(TAG, e.message.toString())
@@ -108,45 +117,23 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
         return solver.getPuzzle()!!.getValidity(row, column)
     }
 
+    override fun getEvidenceOfFieldOfCurrentPuzzle(row: Int, column: Int): Boolean {
+        return solver.getPuzzle()!!.getEvidence(row, column)
+    }
+
     override fun solveCurrentPuzzle() {
         solver.solvePuzzle(this)
     }
 
     override fun clearCurrentPuzzle() {
-        solver.getPuzzle()!!.clearGrid()
+        solver.getPuzzle()!!.ereaseVariables()
     }
 
     override fun getNotifiedAboutSelection(row: Int, column: Int, view : View) {
-        val builder: AlertDialog.Builder? = this.let {
-            AlertDialog.Builder(it)
+        if (solver.isWorking() || solver.getPuzzle()?.getEvidence(row, column) == true) {
+            return      // Perform no action
         }
-        val editText = EditText(this)
-        editText.setInputType(InputType.TYPE_CLASS_NUMBER)
-        val prevVal = getFieldOfCurrentPuzzle(row, column)
-        val prevStr = when (prevVal) {
-            -1 -> ""
-            else -> prevVal.toString()
-        }
-        editText.setText(prevStr)
-        builder?.setView(editText)
-        builder?.setPositiveButton(
-            R.string.submit,
-            DialogInterface.OnClickListener {
-                    dialog, id ->
-                    val str = editText.text.toString()
-                    val value = when (str) {
-                        "" -> -1
-                        else -> str.toInt()
-                    }
-                    setFieldOfCurrentPuzzle(
-                        row,
-                        column,
-                        value)
-                    view.invalidate()
-            })
-        builder?.create()
-        builder?.show()
-
+        buildFieldValueInput(view, row, column)?.show()
     }
 
     override fun setInvalidateViewFunction(f: () -> Unit) {
@@ -178,8 +165,69 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
     override fun getNotifiedAboutFinish() {
         runOnUiThread {
             invalidatePuzzleViewFunction?.let { it() }
+            Snackbar.make(binding.root, "Solver finished the puzzle.", Snackbar.LENGTH_SHORT).show()
         }
     }
 
+
+    private fun buildFieldValueInput(view : View, row : Int, column : Int): AlertDialog.Builder? {
+        val builder: AlertDialog.Builder? = this.let {
+            AlertDialog.Builder(it)
+        }
+        val editText = EditText(this)
+        editText.setInputType(InputType.TYPE_CLASS_NUMBER)
+        val prevVal = getFieldOfCurrentPuzzle(row, column)
+        val prevStr = when (prevVal) {
+            -1 -> ""
+            else -> prevVal.toString()
+        }
+        editText.setText(prevStr)
+        builder?.setView(editText)
+        builder?.setPositiveButton(
+            R.string.submit,
+            DialogInterface.OnClickListener {
+                    _, _ ->
+                val str = editText.text.toString()
+                val value = when (str) {
+                    "" -> -1
+                    else -> str.toInt()
+                }
+                setFieldOfCurrentPuzzle(
+                    row,
+                    column,
+                    value)
+                view.invalidate()
+            })
+        builder?.create()
+        return builder
+    }
+
+    private fun buildFinishAlert() : AlertDialog.Builder? {
+        val formatter = SimpleDateFormat("HH:mm:ss")
+        val builder: AlertDialog.Builder? = this.let {
+            AlertDialog.Builder(it)
+        }
+        builder?.setTitle(getString(R.string.puzzleSolved))
+        //plus(formatter.format(Date(Date(System.currentTimeMillis()).time - (solver.getPuzzle()!!.timeCreated).time)))
+        builder?.setPositiveButton(getString(R.string._continue), DialogInterface.OnClickListener { _, _ -> })
+        builder?.create()
+        return builder
+    }
+
+    override fun getPuzzleList(): List<Puzzle> {
+        return puzzles
+    }
+
+    override fun setSelectedPuzzle(puzzle: Puzzle) {
+        solver.setPuzzle(puzzle)
+    }
+
+    override fun removePuzzle(puzzle: Puzzle) {
+        puzzles.remove(puzzle)
+        if (solver.getPuzzle() == puzzle) {
+            solver.stop()
+            loadLatestPuzzle()
+        }
+    }
 
 }

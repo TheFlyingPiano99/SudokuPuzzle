@@ -47,10 +47,21 @@ class Puzzle() {
         }
         this.timeCreated = timeCreated
         val lines = gridString.split("\n")
-        for ((r, line) in lines.withIndex()) {
-            val words = line.split("\t")
+        if (lines.size < 9) {
+            throw RuntimeException("Too few lines in gridString")
+        }
+        for (r in 0 until fieldsInRow) {
+            val words = lines[r].split("\t")
             for ((c, word) in words.withIndex()) {
                 grid[r][c] = word.toInt()
+            }
+        }
+        if (18 == lines.size) {
+            for (r in 0 until fieldsInRow) {
+                val words = lines[r + 9].split("\t")
+                for ((c, word) in words.withIndex()) {
+                    evidence[r][c] = word.toBoolean()
+                }
             }
         }
     }
@@ -99,15 +110,35 @@ class Puzzle() {
     }
 
     fun getEvidence(row : Int, column : Int) : Boolean {
+        val v = grid[row][column]
         return evidence[row][column]
+    }
+
+    fun setEvidence(row : Int, column : Int, b : Boolean)  {
+        evidence[row][column] = b
     }
 
     fun getValidity(row : Int, column : Int) : Boolean {
         return validity[row][column]
     }
 
-    fun clearGrid() {
-        grid = Array(9, { _ -> Array(9, { _ -> -1})})
+    fun ereaseVariables() {
+        for (r in 0 until fieldsInRow) {
+            for (c in 0 until fieldsInRow) {
+                if (!getEvidence(r, c)) {
+                    grid[r][c] = -1
+                }
+            }
+        }
+    }
+
+    fun ereaseVariablesAndEvidences() {
+        for (r in 0 until fieldsInRow) {
+            for (c in 0 until fieldsInRow) {
+                grid[r][c] = -1
+                evidence[r][c] = false
+            }
+        }
     }
 
     override fun toString(): String {
@@ -115,6 +146,18 @@ class Puzzle() {
         for (r in 0..8) {
             for (c in 0..8) {
                 builder.append(this.getField(r, c).toString())
+                if (c == 8) {
+                    builder.append("\n")
+                }
+                else if (c < 8) {
+                    builder.append("\t")
+                }
+            }
+        }
+
+        for (r in 0..8) {
+            for (c in 0..8) {
+                builder.append(this.getEvidence(r, c).toString())
                 if (c == 8 && r < 8) {
                     builder.append("\n")
                 }
@@ -123,6 +166,7 @@ class Puzzle() {
                 }
             }
         }
+
         return builder.toString()
     }
 
@@ -204,6 +248,22 @@ class Puzzle() {
             }
         }
         return isValid
+    }
+
+    fun isFinished(): Boolean {
+        var isFinished = true
+        for (r in 0 until fieldsInRow) {
+            for (c in 0 until fieldsInRow) {
+                if (-1 == grid[r][c]) {
+                    isFinished = false
+                    break
+                }
+            }
+        }
+        if (isFinished) {
+            isFinished = checkValidityOfAll()
+        }
+        return isFinished
     }
 
     fun hasEqualState(other : Puzzle) : Boolean {

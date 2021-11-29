@@ -5,12 +5,8 @@ import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
-import android.os.Build
-import androidx.annotation.RequiresApi
 import bme.mobweb.lab.sudoku.model.Puzzle
 import java.text.SimpleDateFormat
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeFormatterBuilder
 
 
 /*

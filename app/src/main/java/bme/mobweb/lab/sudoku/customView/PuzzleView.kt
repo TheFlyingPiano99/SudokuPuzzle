@@ -47,6 +47,16 @@ class PuzzleView(context : Context, attributeSet : AttributeSet) : View(context,
         color = (Color.RED + 0x00008888).toInt()
     }
 
+    private val evidenceFillPaint = Paint().apply {
+        style = Paint.Style.FILL
+        color = Color.GRAY
+    }
+
+    private val invalidEvidenceFillPaint = Paint().apply {
+        style = Paint.Style.FILL
+        color = (Color.GRAY - 0x00008888).toInt()
+    }
+
     private val fieldsInRow = 9
     private val fieldsInRowInSquare = 3
     private var fieldPixelSize = 0F
@@ -72,16 +82,28 @@ class PuzzleView(context : Context, attributeSet : AttributeSet) : View(context,
         for (r in 0 until fieldsInRow) {
             for (c in 0 until fieldsInRow) {
                 val selected = (selectedRow == r && selectedColumn == c)
+                val evidence = dataProvider?.getEvidenceAtLocation(r, c)
                 val paint = when (dataProvider?.getValidityAtLocation(r, c)) {
-                    true -> {
-                        when (selected) {
-                            true -> selectedFillPaint
-                            false -> null
+                    true -> when (selected) {
+                        true -> when (evidence) {
+                            true -> evidenceFillPaint
+                            else -> selectedFillPaint
+                        }
+                        false -> when (evidence) {
+                            true -> evidenceFillPaint
+                            else -> null
                         }
                     }
                     false -> when (selected) {
-                        true -> invalidSelectedFillPaint
-                        false -> invalidFillPaint
+                        true -> when(evidence) {
+                            true -> invalidEvidenceFillPaint
+                            else -> invalidSelectedFillPaint
+                        }
+                        false -> when (evidence) {
+                            true -> invalidEvidenceFillPaint
+                            else -> invalidFillPaint
+                        }
+                        else -> null
                     }
                     else -> null
                 }
@@ -159,6 +181,7 @@ class PuzzleView(context : Context, attributeSet : AttributeSet) : View(context,
     interface PuzzleDataProvider {
         fun getValueAtLocation(row : Int, column : Int) : Int
         fun getValidityAtLocation(row : Int, column : Int) : Boolean
+        fun getEvidenceAtLocation(row : Int, column : Int) : Boolean
         fun getNotifiedAboutSelection(row : Int, column : Int)
     }
 }

@@ -17,9 +17,9 @@
     </fragment>
     <fragment
         android:id="@+id/SecondFragment"
-        android:name="bme.mobweb.lab.sudoku.SecondFragment"
-        android:label="@string/second_fragment_label"
-        tools:layout="@layout/fragment_second">
+        android:name="bme.mobweb.lab.sudoku.SelectFragment"
+        android:label="@string/select_fragment_label"
+        tools:layout="@layout/fragment_select">
 
         <action
             android:id="@+id/action_SecondFragment_to_FirstFragment"

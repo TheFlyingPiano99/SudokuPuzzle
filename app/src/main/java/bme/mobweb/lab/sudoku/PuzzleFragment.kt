@@ -2,14 +2,13 @@ package bme.mobweb.lab.sudoku
 
 import android.content.Context
 import android.os.Bundle
-import android.text.Editable
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.navigation.fragment.findNavController
 import bme.mobweb.lab.sudoku.customView.PuzzleView
 import bme.mobweb.lab.sudoku.databinding.FragmentPuzzleBinding
-import bme.mobweb.lab.sudoku.model.Solver
 import com.google.android.material.snackbar.Snackbar
 import java.lang.RuntimeException
 
@@ -53,7 +52,9 @@ class PuzzleFragment : Fragment(), PuzzleView.PuzzleDataProvider {
         binding.puzzleView.dataProvider = this
         binding.solveButton.setOnClickListener {
             handler.solveCurrentPuzzle()
-            //findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment)
+        }
+        binding.selectPuzzleButton.setOnClickListener {
+            findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment)
         }
 
         binding.initNewPuzzleButton.setOnClickListener {
@@ -74,8 +75,8 @@ class PuzzleFragment : Fragment(), PuzzleView.PuzzleDataProvider {
         fun solveCurrentPuzzle()
         fun initNewPuzzle()
         fun getFieldOfCurrentPuzzle(row: Int, column: Int): Int
-        fun setFieldOfCurrentPuzzle(row: Int, column: Int, value: Int)
         fun getValidityOfFieldOfCurrentPuzzle(row: Int, column: Int): Boolean
+        fun getEvidenceOfFieldOfCurrentPuzzle(row: Int, column: Int): Boolean
         fun clearCurrentPuzzle()
         fun getNotifiedAboutSelection(row: Int, column: Int, view: View)
         fun setInvalidateViewFunction(f : () -> Unit)
@@ -87,6 +88,10 @@ class PuzzleFragment : Fragment(), PuzzleView.PuzzleDataProvider {
 
     override fun getValidityAtLocation(row: Int, column: Int): Boolean {
         return handler.getValidityOfFieldOfCurrentPuzzle(row, column)
+    }
+
+    override fun getEvidenceAtLocation(row: Int, column: Int): Boolean {
+        return handler.getEvidenceOfFieldOfCurrentPuzzle(row, column)
     }
 
     override fun getNotifiedAboutSelection(row: Int, column: Int) {

@@ -1,10 +1,12 @@
 package bme.mobweb.lab.sudoku.model
 
 import android.util.Log
+import java.lang.RuntimeException
 import java.util.concurrent.ThreadFactory
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.thread
 import kotlin.concurrent.withLock
+import kotlin.random.Random
 
 class WorkThreadFactory : ThreadFactory {
 
@@ -25,6 +27,8 @@ class Solver : Runnable {
     private val killLock = ReentrantLock()
     private var finished = false
     private var working = false
+    private val maxAllowedIterations = 1000
+
     private var kill = false
         get () {
             return killLock.withLock {
@@ -45,13 +49,58 @@ class Solver : Runnable {
             kill = true
             workThread?.join()
         }
-        val retVal = Puzzle()
-        //TODO
-        //Generate puzzle.
-
-        setPuzzle(retVal)
+        var initVal : Puzzle? = null
+        val noOfEvidences = 25
+        var noOfPreEvidence = 3
+        var generationAttempt = 0
+        val maxGenerationAttempts = 2
         setFinished(false)
-        return retVal
+        while (!isFinished()) {
+            initVal = Puzzle()
+            if (generationAttempt > 5) {
+                noOfPreEvidence = 1
+                Log.d("Solver", "Too many generation attempts.")
+            }
+            var e = 0
+            while (e < noOfPreEvidence) {
+                val r = Random.nextInt(0, 9)
+                val c = Random.nextInt(0, 9)
+                val v = Random.nextInt(1, 10)
+                try {
+                    initVal.setFieldAsVariable(r, c, v)
+                    if (initVal.checkValidityOfField(r, c)) {
+                        initVal.setEvidence(r, c, true)
+                        e++
+                    }
+                    else {
+                        initVal.setFieldAsVariable(r, c, -1)
+                        initVal.checkValidityOfField(r, c)
+                    }
+                }
+                catch (e : RuntimeException) {
+                    Log.d("Solver", e.message.toString())
+                }
+            }
+            handler = null
+            setPuzzle(initVal)
+            solvingAlgorithm()
+            generationAttempt++
+        }
+        initVal = getPuzzle()
+
+        var e = noOfPreEvidence
+        while (e < noOfEvidences) {
+            val r = Random.nextInt(0, 9)
+            val c = Random.nextInt(0, 9)
+            if (initVal?.getEvidence(r, c) == false) {
+                initVal?.setEvidence(r, c, true)
+                e++
+            }
+        }
+        initVal?.ereaseVariables()
+        setPuzzle(initVal)
+        setFinished(false)
+        return initVal!!
     }
 
     fun setPuzzle(p : Puzzle?) {
@@ -60,10 +109,11 @@ class Solver : Runnable {
         }
     }
 
-    fun solvePuzzle(handler : FinishHandler) {
-        if (isFinished() || isWorking()) {
+    fun solvePuzzle(handler : FinishHandler?) {
+        if (isWorking() || puzzle?.isFinished() == true) {
             return
         }
+        getPuzzle()?.ereaseVariables()
         setWorking(true)
         setFinished(false)
         kill = false
@@ -103,7 +153,7 @@ class Solver : Runnable {
 
         var iteration = 0
         var localFinished = false
-        while (!localFinished) {
+        while (!localFinished && iteration < maxAllowedIterations) {
             if (c == 8 && r == 8) {
                 Log.d("Solver", "End of line.")
             }
@@ -184,6 +234,7 @@ class Solver : Runnable {
                 }
             }
         }
+        setWorking(false)
     }
 
     fun getPuzzle() : Puzzle? {
