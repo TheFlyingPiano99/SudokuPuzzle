@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.navigation.fragment.findNavController
@@ -22,6 +23,12 @@ class PuzzleFragment : Fragment(), PuzzleView.PuzzleDataProvider {
     }
     private var _binding: FragmentPuzzleBinding? = null
     private lateinit var handler : PuzzleHolder
+
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setHasOptionsMenu(true)         // Important to handle navbar events!
+    }
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -60,10 +67,19 @@ class PuzzleFragment : Fragment(), PuzzleView.PuzzleDataProvider {
         binding.initNewPuzzleButton.setOnClickListener {
                 view ->
             handler.initNewPuzzle()
-            Snackbar.make(view, "New puzzle created.", Snackbar.LENGTH_SHORT).show()
             invalidateView()
         }
 
+    }
+
+    override fun onResume() {
+        super.onResume()
+        handler.continueSolving()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        handler.breakSolving()
     }
 
     override fun onDestroyView() {
@@ -75,22 +91,24 @@ class PuzzleFragment : Fragment(), PuzzleView.PuzzleDataProvider {
         fun solveCurrentPuzzle()
         fun initNewPuzzle()
         fun getFieldOfCurrentPuzzle(row: Int, column: Int): Int
-        fun getValidityOfFieldOfCurrentPuzzle(row: Int, column: Int): Boolean
-        fun getEvidenceOfFieldOfCurrentPuzzle(row: Int, column: Int): Boolean
+        fun getValidityOfFieldOfCurrentPuzzle(row: Int, column: Int): Boolean?
+        fun getEvidenceOfFieldOfCurrentPuzzle(row: Int, column: Int): Boolean?
         fun clearCurrentPuzzle()
         fun getNotifiedAboutSelection(row: Int, column: Int, view: View)
         fun setInvalidateViewFunction(f : () -> Unit)
+        fun continueSolving()
+        fun breakSolving()
     }
 
     override fun getValueAtLocation(row: Int, column: Int) : Int {
         return handler.getFieldOfCurrentPuzzle(row, column)
     }
 
-    override fun getValidityAtLocation(row: Int, column: Int): Boolean {
+    override fun getValidityAtLocation(row: Int, column: Int): Boolean? {
         return handler.getValidityOfFieldOfCurrentPuzzle(row, column)
     }
 
-    override fun getEvidenceAtLocation(row: Int, column: Int): Boolean {
+    override fun getEvidenceAtLocation(row: Int, column: Int): Boolean? {
         return handler.getEvidenceOfFieldOfCurrentPuzzle(row, column)
     }
 
@@ -100,6 +118,20 @@ class PuzzleFragment : Fragment(), PuzzleView.PuzzleDataProvider {
 
     private fun invalidateView() {
         binding.puzzleView.invalidate()
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        return when (item.itemId) {
+            R.id.action_settings ->
+            {
+                findNavController().navigate(R.id.action_FirstFragment_to_settingsFragment)
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 
 }

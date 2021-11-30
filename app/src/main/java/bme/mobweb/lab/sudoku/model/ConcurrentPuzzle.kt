@@ -1,5 +1,6 @@
 package bme.mobweb.lab.sudoku.model
 
+import java.util.*
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -54,6 +55,12 @@ class ConcurrentPuzzle(from : Puzzle, puzzleLock : Lock) {
     fun getCopyOfPuzzle() : Puzzle {
         return lock.withLock {
             return@withLock Puzzle(puzzle)
+        }
+    }
+
+    fun addToSolvingTime (deltaTime : Long) {
+        lock.withLock {
+            puzzle.addToSolvingTime(deltaTime)
         }
     }
 

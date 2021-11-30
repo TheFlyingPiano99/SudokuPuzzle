@@ -16,11 +16,13 @@ class PersistentDataHelper(context: Context) {
     private var database: SQLiteDatabase? = null
     private val dbHelper: DbHelper = DbHelper(context)
 
-    private var formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+    private var timeCreatedFormatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+    private var timeSpentFormatter = SimpleDateFormat("HH:mm:ss")
 
     private val tableColumns = arrayOf(
         DbConstants.Puzzles.Columns.ID.name,
         DbConstants.Puzzles.Columns.timeCreated.name,
+        DbConstants.Puzzles.Columns.timeSpentSolving.name,
         DbConstants.Puzzles.Columns.gridString.name
     )
 
@@ -38,7 +40,8 @@ class PersistentDataHelper(context: Context) {
         for (puzzle in puzzles) {
             val values = ContentValues()
             values.put(DbConstants.Puzzles.Columns.ID.name, puzzle.ID)
-            values.put(DbConstants.Puzzles.Columns.timeCreated.name, formatter.format(puzzle.timeCreated))
+            values.put(DbConstants.Puzzles.Columns.timeCreated.name, timeCreatedFormatter.format(puzzle.timeCreated))
+            values.put(DbConstants.Puzzles.Columns.timeSpentSolving.name, timeSpentFormatter.format(puzzle.timeSpentSolving))
             values.put(DbConstants.Puzzles.Columns.gridString.name, puzzle.toString())
             database!!.insert(DbConstants.Puzzles.DATABASE_TABLE, null, values)
         }
@@ -64,9 +67,10 @@ class PersistentDataHelper(context: Context) {
 
     private fun cursorToPuzzle(cursor: Cursor): Puzzle {
         val puzzleID = cursor.getInt(DbConstants.Puzzles.Columns.ID.ordinal)
-        val timeCreated = formatter.parse(cursor.getString(DbConstants.Puzzles.Columns.timeCreated.ordinal))
+        val timeCreated = timeCreatedFormatter.parse(cursor.getString(DbConstants.Puzzles.Columns.timeCreated.ordinal))
+        val timeSpentSolving = timeSpentFormatter.parse(cursor.getString(DbConstants.Puzzles.Columns.timeSpentSolving.ordinal))
         val gridString = cursor.getString(DbConstants.Puzzles.Columns.gridString.ordinal)
-        return Puzzle(puzzleID, timeCreated!!, gridString)
+        return Puzzle(puzzleID, timeCreated!!, timeSpentSolving!!, gridString)
     }
 
 }

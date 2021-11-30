@@ -6,7 +6,6 @@
     android:layout_height="80dp"
     android:orientation="horizontal"
     android:padding="10dp"
-    android:weightSum="8"
     >
 
     <TextView
@@ -15,6 +14,16 @@
         android:layout_height="match_parent"
         android:layout_weight="6"
         tools:text="Time created" />
+
+
+    <CheckBox
+        android:id="@+id/isSolvedCheckbox"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:paddingStart="20dp"
+        android:enabled="false"
+        android:text="" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/deleteButton"
@@ -35,5 +44,6 @@
         android:clickable="true"
         android:focusable="true"
         app:srcCompat="@android:drawable/ic_media_play" />
+
 
 </LinearLayout>

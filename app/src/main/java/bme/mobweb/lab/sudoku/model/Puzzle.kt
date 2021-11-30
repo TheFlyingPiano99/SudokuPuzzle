@@ -1,6 +1,7 @@
 package bme.mobweb.lab.sudoku.model
 
 import java.lang.RuntimeException
+import java.sql.Time
 import java.util.*
 
 /*
@@ -16,6 +17,7 @@ open class Puzzle() {
     }
     var ID : Int
     var timeCreated : Date
+    var timeSpentSolving = Date(0,0,0,0,0,0)
 
     private val fieldsInRow = 9
     private val fieldsInRowInSquare = 3
@@ -32,6 +34,7 @@ open class Puzzle() {
     constructor(from : Puzzle) : this() {
         ID = from.ID
         timeCreated = from.timeCreated
+        timeSpentSolving = from.timeSpentSolving
 
         for (r in 0 until fieldsInRow) {
             grid[r] = from.grid[r].copyOf()
@@ -40,12 +43,15 @@ open class Puzzle() {
         }
     }
 
-    constructor(ID: Int, timeCreated : Date, gridString : String) : this() {
+    constructor(ID: Int, timeCreated : Date, timeSpentSolving : Date, gridString : String) : this() {
         this.ID = ID
         if (greatestID < this.ID) {
             greatestID = this.ID
         }
+
         this.timeCreated = timeCreated
+        this.timeSpentSolving = timeSpentSolving
+
         val lines = gridString.split("\n")
         if (lines.size < 9) {
             throw RuntimeException("Too few lines in gridString")
@@ -278,5 +284,10 @@ open class Puzzle() {
         }
         return equal
     }
+
+    fun addToSolvingTime (deltaTime : Long) {
+        timeSpentSolving = Date(timeSpentSolving.time + deltaTime)
+    }
+
 
 }

@@ -9,7 +9,7 @@ import android.util.Log
 object DbConstants {
 
     const val DATABASE_NAME = "sudoku.db"
-    const val DATABASE_VERSION = 2
+    const val DATABASE_VERSION = 3
 
     object Puzzles {
         const val DATABASE_TABLE = "puzzles"
@@ -17,12 +17,14 @@ object DbConstants {
         enum class Columns {
             ID,
             timeCreated,
+            timeSpentSolving,
             gridString
         }
 
         private val DATABASE_CREATE = """create table if not exists $DATABASE_TABLE (
-            ${Columns.ID.name} integer primary key autoincrement,
-            ${Columns.timeCreated.name} text,
+            ${Columns.ID.name} integer primary key,
+            ${Columns.timeCreated.name} text not null,
+            ${Columns.timeSpentSolving.name} text,
             ${Columns.gridString.name} text not null
             );"""
 

@@ -1,13 +1,15 @@
 package bme.mobweb.lab.sudoku.adapter
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import bme.mobweb.lab.sudoku.databinding.PuzzleListBinding
 import bme.mobweb.lab.sudoku.model.Puzzle
 import java.lang.StringBuilder
+import java.text.SimpleDateFormat
 
-class PuzzleAdapter(private val listener: PuzzleListItemClickListener) :
+class PuzzleAdapter(private val listener: PuzzleListItemListener) :
     RecyclerView.Adapter<PuzzleAdapter.PuzzleViewHolder>() {
 
     private val items = mutableListOf<Puzzle>()
@@ -17,8 +19,13 @@ class PuzzleAdapter(private val listener: PuzzleListItemClickListener) :
 
     override fun onBindViewHolder(holder: PuzzleViewHolder, position: Int) {
         val item = items[position]
-
-        holder.binding.timeCreatedTextView.text = StringBuilder("Created:\n").append(item.timeCreated.toString()).toString()
+        val timeCreatedFormatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+        val timeSpentFormatter = SimpleDateFormat("HH:mm:ss")
+        holder.binding.isSolvedCheckbox.isChecked = item.isFinished()
+        holder.binding.timeCreatedTextView.text = StringBuilder("Created:\n")
+            .append(timeCreatedFormatter.format(item.timeCreated))
+            .append("\nSolving time: ")
+            .append(timeSpentFormatter.format(item.timeSpentSolving)).toString()
         holder.binding.deleteButton.setOnClickListener { _ ->
             val n = items.indexOf(item)
             items.remove(item)
@@ -64,7 +71,7 @@ class PuzzleAdapter(private val listener: PuzzleListItemClickListener) :
 
     override fun getItemCount(): Int = items.size
 
-    interface PuzzleListItemClickListener {
+    interface PuzzleListItemListener {
         fun onItemChanged(item : Puzzle)
         fun onItemRemoved(item : Puzzle)
         fun onItemSelectClicked(item : Puzzle)

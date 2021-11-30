@@ -180,8 +180,8 @@ class PuzzleView(context : Context, attributeSet : AttributeSet) : View(context,
 
     interface PuzzleDataProvider {
         fun getValueAtLocation(row : Int, column : Int) : Int
-        fun getValidityAtLocation(row : Int, column : Int) : Boolean
-        fun getEvidenceAtLocation(row : Int, column : Int) : Boolean
+        fun getValidityAtLocation(row : Int, column : Int) : Boolean?
+        fun getEvidenceAtLocation(row : Int, column : Int) : Boolean?
         fun getNotifiedAboutSelection(row : Int, column : Int)
     }
 }
