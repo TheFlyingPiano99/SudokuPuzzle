@@ -10,7 +10,7 @@ Row major 9x9 matrix
 
 
 
-class Puzzle() {
+open class Puzzle() {
     private companion object IDGenerator {
         private var greatestID : Int = -1
     }

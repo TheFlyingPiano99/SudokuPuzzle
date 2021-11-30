@@ -14,7 +14,6 @@ class WorkThreadFactory : ThreadFactory {
             r?.run()
         }
     }
-
 }
 
 
@@ -97,16 +96,27 @@ class Solver : Runnable {
             }
         }
         initVal?.ereaseVariables()
-        setPuzzle(initVal)
         setFinished(false)
         return initVal!!
     }
 
-    fun setPuzzle(p : Puzzle?) {
+    private fun setPuzzle(p : Puzzle?) {
         puzzleLock.withLock {
             puzzle = p
         }
     }
+
+    fun setSelectedPuzzle(puzzle : Puzzle) {
+        puzzleLock.withLock {
+            if (puzzle == this.puzzle) {
+                return
+            }
+            setPuzzle(puzzle)
+            checkValidity()
+            setFinished(puzzle.isFinished())
+        }
+    }
+
 
     fun solvePuzzle(handler : FinishHandler?) {
         if (isWorking() || puzzle?.isFinished() == true) {
@@ -121,10 +131,13 @@ class Solver : Runnable {
     }
 
     private fun solvingAlgorithm() {
-        if (getPuzzle() == null) {
-            return
+        var toSolve : Puzzle
+        puzzleLock.withLock {
+            if (getPuzzle() == null) {
+                return
+            }
+            toSolve = Puzzle(getPuzzle()!!)
         }
-        var toSolve = Puzzle(getPuzzle()!!)
         toSolve.ereaseVariables()
 
         //srand(0)
@@ -236,14 +249,30 @@ class Solver : Runnable {
         setWorking(false)
     }
 
-    fun getPuzzle() : Puzzle? {
+    private fun getPuzzle() : Puzzle? {
         puzzleLock.withLock {
             return puzzle
         }
     }
 
+    fun getPuzzleAsConcurrent() : ConcurrentPuzzle {
+        return puzzleLock.withLock {
+            return@withLock ConcurrentPuzzle(puzzle!!, puzzleLock)
+        }
+    }
+
+    fun getPuzzleID() : Int? {
+        return puzzleLock.withLock {
+            return@withLock puzzle?.ID
+        }
+    }
+
+
+
     fun checkValidity() : Boolean? {
-        return getPuzzle()?.checkValidityOfAll()
+        return puzzleLock.withLock {
+            return@withLock getPuzzle()?.checkValidityOfAll()
+        }
     }
 
     fun isFinished() : Boolean {
@@ -264,7 +293,7 @@ class Solver : Runnable {
         }
     }
 
-    fun setWorking(b : Boolean){
+    private fun setWorking(b : Boolean){
         workingLock.withLock {
             working = b
         }
