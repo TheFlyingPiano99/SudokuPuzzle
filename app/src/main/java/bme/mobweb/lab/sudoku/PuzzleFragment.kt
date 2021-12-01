@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import androidx.navigation.fragment.findNavController
 import bme.mobweb.lab.sudoku.customView.PuzzleView
 import bme.mobweb.lab.sudoku.databinding.FragmentPuzzleBinding
+import bme.mobweb.lab.sudoku.model.Puzzle
 import com.google.android.material.snackbar.Snackbar
 import java.lang.RuntimeException
 
@@ -23,7 +24,7 @@ class PuzzleFragment : Fragment(), PuzzleView.PuzzleDataProvider {
     }
     private var _binding: FragmentPuzzleBinding? = null
     private lateinit var handler : PuzzleHolder
-
+    private var isForeground = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,11 +75,13 @@ class PuzzleFragment : Fragment(), PuzzleView.PuzzleDataProvider {
 
     override fun onResume() {
         super.onResume()
+        isForeground = true
         handler.continueSolving()
     }
 
     override fun onPause() {
         super.onPause()
+        isForeground = false
         handler.breakSolving()
     }
 
@@ -90,9 +93,7 @@ class PuzzleFragment : Fragment(), PuzzleView.PuzzleDataProvider {
     interface PuzzleHolder {
         fun solveCurrentPuzzle()
         fun initNewPuzzle()
-        fun getFieldOfCurrentPuzzle(row: Int, column: Int): Int
-        fun getValidityOfFieldOfCurrentPuzzle(row: Int, column: Int): Boolean?
-        fun getEvidenceOfFieldOfCurrentPuzzle(row: Int, column: Int): Boolean?
+        fun getCurrentPuzzle(): Puzzle?
         fun clearCurrentPuzzle()
         fun getNotifiedAboutSelection(row: Int, column: Int, view: View)
         fun setInvalidateViewFunction(f : () -> Unit)
@@ -100,24 +101,18 @@ class PuzzleFragment : Fragment(), PuzzleView.PuzzleDataProvider {
         fun breakSolving()
     }
 
-    override fun getValueAtLocation(row: Int, column: Int) : Int {
-        return handler.getFieldOfCurrentPuzzle(row, column)
+    override fun getPuzzle() : Puzzle? {
+        return handler.getCurrentPuzzle()
     }
 
-    override fun getValidityAtLocation(row: Int, column: Int): Boolean? {
-        return handler.getValidityOfFieldOfCurrentPuzzle(row, column)
-    }
-
-    override fun getEvidenceAtLocation(row: Int, column: Int): Boolean? {
-        return handler.getEvidenceOfFieldOfCurrentPuzzle(row, column)
-    }
-
-    override fun getNotifiedAboutSelection(row: Int, column: Int) {
+    override fun onSelection(row: Int, column: Int) {
         handler.getNotifiedAboutSelection(row, column, binding.puzzleView)
     }
 
     private fun invalidateView() {
-        binding.puzzleView.invalidate()
+        if (isForeground) {
+            binding.puzzleView.invalidate()
+        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

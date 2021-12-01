@@ -104,5 +104,6 @@ class SelectFragment : Fragment(), PuzzleAdapter.PuzzleListItemListener {
         fun getPuzzleList() : List<Puzzle>
         fun setSelectedPuzzle(puzzle : Puzzle)
         fun removePuzzle(puzzle : Puzzle)
+        fun setUpdateAdapterFunction(f : (puzzles : List<Puzzle>) -> Unit)
     }
 }

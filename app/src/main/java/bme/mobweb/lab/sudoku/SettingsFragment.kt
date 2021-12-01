@@ -10,6 +10,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.preference.PreferenceFragmentCompat
 import bme.mobweb.lab.sudoku.databinding.FragmentPuzzleBinding
 import bme.mobweb.lab.sudoku.databinding.FragmentSettingsBinding
+import bme.mobweb.lab.sudoku.model.Settings
 import java.lang.RuntimeException
 
 class SettingsFragment : Fragment() {
@@ -37,11 +38,12 @@ class SettingsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.darkModeSwitch.isChecked = false
+        val settings = listener.getSettings()
+        binding.darkModeSwitch.isChecked = settings.darkTheme
         binding.darkModeSwitch.setOnCheckedChangeListener {
             _, newValue -> listener.onDarkSettingChanged(newValue)
         }
-        binding.hintSwitch.isChecked = true
+        binding.hintSwitch.isChecked = settings.hints
         binding.hintSwitch.setOnCheckedChangeListener {
             _, newValue -> listener.onHintSettingChanged(newValue)
         }
@@ -51,6 +53,7 @@ class SettingsFragment : Fragment() {
     }
 
     interface SettingsListener {
+        fun getSettings() : Settings
         fun onHintSettingChanged(newValue : Boolean)
         fun onDarkSettingChanged(newValue : Boolean)
         fun onDeletePuzzles()

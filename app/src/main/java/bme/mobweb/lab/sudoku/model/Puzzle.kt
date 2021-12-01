@@ -1,8 +1,8 @@
 package bme.mobweb.lab.sudoku.model
 
 import java.lang.RuntimeException
-import java.sql.Time
 import java.util.*
+import kotlin.collections.ArrayList
 
 /*
 The puzzle grid
@@ -80,7 +80,7 @@ open class Puzzle() {
         return fieldsInRow
     }
 
-    fun getField(row : Int, column : Int) : Int {
+    fun getValue(row : Int, column : Int) : Int {
         return grid[row][column]
     }
 
@@ -151,7 +151,7 @@ open class Puzzle() {
         var builder = StringBuilder("")
         for (r in 0..8) {
             for (c in 0..8) {
-                builder.append(this.getField(r, c).toString())
+                builder.append(this.getValue(r, c).toString())
                 if (c == 8) {
                     builder.append("\n")
                 }
@@ -176,15 +176,16 @@ open class Puzzle() {
         return builder.toString()
     }
 
+
     private fun checkAllRelated(row : Int, column : Int) {
         for (r in 0..8) {
             if (r != row) {
-                checkValidityOfField(r, column)
+                checkValidityOfField(r, column, false)
             }
         }
         for (c in 0..8) {
             if (c != column) {
-                checkValidityOfField(row, c)
+                checkValidityOfField(row, c, false)
             }
         }
         val squareInRow = (column / fieldsInRowInSquare).toInt()
@@ -194,20 +195,20 @@ open class Puzzle() {
                 val calcR = squareInColumn * fieldsInRowInSquare + r
                 val calcC = squareInRow * fieldsInRowInSquare + c
                 if (calcR != row && calcC != column) {
-                    checkValidityOfField(calcR, calcC)
+                    checkValidityOfField(calcR, calcC, false)
                 }
             }
         }
     }
 
 
-    fun checkValidityOfField(row : Int, column : Int) : Boolean {
+    fun checkValidityOfField(row : Int, column : Int, resolveRelated : Boolean) : Boolean {
         val wasValid = validity[row][column]
         var isValid = true
         if (grid[row][column] == -1) {
             isValid = true
             validity[row][column] = isValid
-            if (!wasValid) {
+            if (!wasValid && resolveRelated) {
                 checkAllRelated(row, column)
             }
             return true                 // Not filled
@@ -238,7 +239,7 @@ open class Puzzle() {
         }
 
         validity[row][column] = isValid
-        if (isValid && !wasValid) {
+        if (!wasValid && resolveRelated) {
             checkAllRelated(row, column)
         }
         return isValid             // No inconsistency found
@@ -248,7 +249,7 @@ open class Puzzle() {
         var isValid = true
         for (r in 0 until fieldsInRow) {
             for (c in 0 until fieldsInRow) {
-                if (!checkValidityOfField(r, c)) {
+                if (!checkValidityOfField(r, c, false)) {
                     isValid = false
                 }
             }
@@ -276,7 +277,7 @@ open class Puzzle() {
         var equal = true
         for (r in 0 until fieldsInRow) {
             for (c in 0 until fieldsInRow) {
-                if (grid[r][c] != other.getField(r, c)) {
+                if (grid[r][c] != other.getValue(r, c)) {
                     equal = false
                     break
                 }

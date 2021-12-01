@@ -8,8 +8,6 @@ import kotlin.concurrent.withLock
 import kotlin.random.Random
 
 
-
-
 class Solver(handler : FinishHandler) {
     private var puzzle : Puzzle? = null
     private val puzzleLock = ReentrantLock()
@@ -47,21 +45,17 @@ class Solver(handler : FinishHandler) {
         workThread?.start()
     }
 
-    private fun setPuzzle(p : Puzzle?) {
-        puzzleLock.withLock {
-            puzzle = p
-        }
-    }
-
     fun setSelectedPuzzle(puzzle : Puzzle) {
-        puzzleLock.withLock {
-            if (puzzle == this.puzzle) {
-                return
-            }
-            setPuzzle(puzzle)
-            checkValidity()
-            setFinished(puzzle.isFinished())
+        if (isWorking()) {
+            kill = true
+            workThread?.join()
         }
+        if (puzzle == this.puzzle) {
+            return
+        }
+        setPuzzle(puzzle)
+        checkValidity()
+        setFinished(puzzle.isFinished())
     }
 
 
@@ -74,7 +68,7 @@ class Solver(handler : FinishHandler) {
         kill = false
         workThread?.join()  // For safety
         workThread = Thread {
-            val solution = solvingAlgorithm(Puzzle(getPuzzle()!!),true)
+            val solution = solvingAlgorithm(getPuzzle()!!,true)
             if (solution != null) {
                 setPuzzle(solution)
                 handler.onFinishedSolving()
@@ -112,7 +106,7 @@ class Solver(handler : FinishHandler) {
                 while (candidate <= maxValue && !validCandidate) {
                     // try to insert number [1..9]
                     toSolve.setFieldAsVariable(r, c, candidate)
-                    validCandidate = toSolve.checkValidityOfField(r, c)
+                    validCandidate = toSolve.checkValidityOfField(r, c, true)
                     if (validCandidate) {    // set value
                         for (p in path) {    // Check if has been
                             if (toSolve.hasEqualState(p)) {
@@ -123,7 +117,7 @@ class Solver(handler : FinishHandler) {
                         if (validCandidate) {
                             path.add(Puzzle(toSolve))
                             if (tellUpdates) {
-                                setPuzzle(Puzzle(toSolve))
+                                setPuzzle(toSolve)
                                 handler.onStateChange()
                             }
                             break
@@ -190,13 +184,13 @@ class Solver(handler : FinishHandler) {
                 val v = Random.nextInt(1, 10)
                 try {
                     initVal.setFieldAsVariable(r, c, v)
-                    if (initVal.checkValidityOfField(r, c)) {
+                    if (initVal.checkValidityOfField(r, c, true)) {
                         initVal.setEvidence(r, c, true)
                         e++
                     }
                     else {
                         initVal.setFieldAsVariable(r, c, -1)
-                        initVal.checkValidityOfField(r, c)
+                        initVal.checkValidityOfField(r, c, true)
                     }
                 }
                 catch (e : RuntimeException) {
@@ -222,57 +216,38 @@ class Solver(handler : FinishHandler) {
         handler.onFinishedGenerating(initVal!!)
     }
 
-    private fun getPuzzle() : Puzzle? {
-        puzzleLock.withLock {
-            return puzzle
+    fun getPuzzle() : Puzzle? {
+        return when (puzzle) {
+            null -> null
+            else -> Puzzle(puzzle!!)
         }
     }
 
-    fun getPuzzleAsConcurrent() : ConcurrentPuzzle? {
-        return puzzleLock.withLock {
-            return@withLock when (puzzle) {
-                null -> null
-                else -> ConcurrentPuzzle(puzzle!!, puzzleLock)
-            }
+    fun setPuzzle(p : Puzzle?) {
+        puzzle = when (p) {
+            null -> null
+            else -> Puzzle(p)
         }
     }
-
-    fun getPuzzleID() : Int? {
-        return puzzleLock.withLock {
-            return@withLock puzzle?.ID
-        }
-    }
-
-
 
     fun checkValidity() : Boolean? {
-        return puzzleLock.withLock {
-            return@withLock getPuzzle()?.checkValidityOfAll()
-        }
+        return getPuzzle()?.checkValidityOfAll()
     }
 
     fun isFinished() : Boolean {
-        finishedLock.withLock {
-            return finished
-        }
+        return finished
     }
 
     fun setFinished(b : Boolean) {
-        finishedLock.withLock {
-            finished = b
-        }
+        finished = b
     }
 
     fun isWorking() : Boolean {
-        workingLock.withLock {
-            return working
-        }
+        return working
     }
 
     private fun setWorking(b : Boolean){
-        workingLock.withLock {
-            working = b
-        }
+        working = b
     }
 
     fun stop() {
@@ -307,7 +282,22 @@ class Solver(handler : FinishHandler) {
         }
     }
 
+    fun tryToEraseVariables() {
+        if (isWorking()) {
+            return
+        }
+        workThread?.join()
+        val p = getPuzzle()
+        p?.ereaseVariables()
+        setPuzzle(p)
+    }
 
+    fun setFieldAsVariable(row : Int, column : Int, value : Int) {
+        val p = getPuzzle()
+        p?.setFieldAsVariable(row, column, value)
+        p?.checkValidityOfField(row, column, true)
+        setPuzzle(p)
+    }
 
     interface FinishHandler {
         fun onStateChange()
@@ -315,6 +305,4 @@ class Solver(handler : FinishHandler) {
         fun onFinishedGenerating(puzzle : Puzzle)
     }
 
-    interface FinishedGeneratingHandler {
-    }
 }

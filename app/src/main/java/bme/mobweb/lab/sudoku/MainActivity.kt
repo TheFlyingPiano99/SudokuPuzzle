@@ -11,8 +11,6 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.fragment.app.FragmentManager
-import androidx.navigation.fragment.findNavController
 import bme.mobweb.lab.sudoku.customView.DialogBuilder
 import bme.mobweb.lab.sudoku.databinding.ActivityMainBinding
 import bme.mobweb.lab.sudoku.model.Solver
@@ -35,6 +33,7 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
     private var puzzles : MutableList<Puzzle> = ArrayList()
     private var solver = Solver(this)
     private var invalidatePuzzleViewFunction : (() -> Unit)? = null
+    private var updatePuzzleAdapter : ((puzzles : List<Puzzle>) -> Unit)? = null
     private val dialogBuilder = DialogBuilder(this)
     private val settings = Settings()
     private var prevTimeViewInvalidated : Long = 0L
@@ -125,31 +124,16 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
         solver.startTimer()
     }
 
-    override fun getFieldOfCurrentPuzzle(row: Int, column: Int): Int {
-        val cPuzzle = solver.getPuzzleAsConcurrent()
-        return when(cPuzzle) {
-            null-> -1
-            else -> cPuzzle.getField(row, column)
-        }
+    override fun getCurrentPuzzle(): Puzzle? {
+        return solver.getPuzzle()
     }
 
-    override fun getValidityOfFieldOfCurrentPuzzle(row: Int, column: Int): Boolean? {
-        return when (settings.hints) {
-            true -> solver.getPuzzleAsConcurrent()?.getValidity(row, column)
-            else -> true
-        }
-    }
-
-    override fun getEvidenceOfFieldOfCurrentPuzzle(row: Int, column: Int): Boolean? {
-        return solver.getPuzzleAsConcurrent()?.getEvidence(row, column)
-    }
 
     private fun setFieldOfCurrentPuzzle(row: Int, column: Int, value: Int) {
         try {
-            solver.getPuzzleAsConcurrent()?.setFieldAsVariable(row, column, value)
-            solver.getPuzzleAsConcurrent()?.checkValidityOfField(row, column)
+            solver.setFieldAsVariable(row, column, value)
 
-            if (solver.getPuzzleAsConcurrent()?.isFinished() == true && !solver.isFinished()) {
+            if (solver.getPuzzle()?.isFinished() == true && !solver.isFinished()) {
                 dialogBuilder.buildFinishAlert()?.show()
             }
         }
@@ -160,15 +144,20 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
     }
 
     override fun clearCurrentPuzzle() {
-        solver.getPuzzleAsConcurrent()?.ereaseVariables()
+        solver.tryToEraseVariables()
     }
 
     override fun getNotifiedAboutSelection(row: Int, column: Int, view : View) {
-        if (solver.getPuzzleAsConcurrent() == null || solver.isWorking() || solver.getPuzzleAsConcurrent()?.getEvidence(row, column) == true) {
+        if (solver.getPuzzle() == null || solver.isWorking() || solver.getPuzzle()?.getEvidence(row, column) == true) {
             return      // Perform no action
         }
         dialogBuilder.buildFieldValueInput(view, row, column,
-            {r, c -> getFieldOfCurrentPuzzle(r, c)},
+            {r, c ->
+                val p = solver.getPuzzle()
+                when (p) {
+                    null -> -1
+                    else -> p.getValue(r, c)
+            }},
             {r, c, v -> setFieldOfCurrentPuzzle(r, c, v)}
         )?.show()
     }
@@ -179,7 +168,7 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
 
     override fun continueSolving() {
         solver.resetTimer()
-        if (solver?.getPuzzleAsConcurrent() != null) {
+        if (solver.getPuzzle() != null) {
             solver.startTimer()
         }
     }
@@ -187,7 +176,9 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
     override fun breakSolving() {
         solver.stop()
         val delta = solver.stopTimer()
-        solver.getPuzzleAsConcurrent()?.addToSolvingTime(delta)
+        val p = solver.getPuzzle()
+        p?.addToSolvingTime(delta)
+        solver.setPuzzle(p)
     }
 
 
@@ -204,33 +195,30 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
     }
 
     override fun onFinishedSolving() {
-        solver.getPuzzleAsConcurrent()?.addToSolvingTime(solver.stopTimer())
+        val copy = solver.getPuzzle()
+        copy?.addToSolvingTime(solver.stopTimer())
         solver.resetTimer()
+        val toReplace = puzzles.find { p -> p.ID == copy?.ID }
+        if (toReplace != null && copy != null) {
+            puzzles.remove(toReplace)
+            puzzles.add(copy)
+        }
+        puzzles.sortBy { p -> p.timeCreated }
         runOnUiThread {
-            val toReplace = puzzles.find { p -> p.ID == solver.getPuzzleAsConcurrent()?.ID }
-            val copy = solver.getPuzzleAsConcurrent()?.getCopyOfPuzzle()
-            if (toReplace != null && copy != null) {
-                puzzles.remove(toReplace)
-                puzzles.add(copy)
-            }
-            puzzles.sortBy { p -> p.timeCreated }
             Snackbar.make(binding.root, "Solver finished the puzzle.", Snackbar.LENGTH_SHORT).show()
             invalidatePuzzleViewFunction?.let { it() }
         }
     }
 
     override fun onFinishedGenerating(puzzle : Puzzle) {
-        solver.getPuzzleAsConcurrent()?.addToSolvingTime(solver.stopTimer())
+        puzzles.add(puzzle)
         solver.resetTimer()
         runOnUiThread {
-            puzzles.add(puzzle)
             invalidatePuzzleViewFunction?.let { it() }
+            updatePuzzleAdapter?.let { it(puzzles) }
             Snackbar.make(binding.root, "New puzzle created.", Snackbar.LENGTH_SHORT).show()
         }
     }
-
-
-
 
     // PuzzleListItemListener implementation:------------------------------------------------------
     override fun getPuzzleList(): List<Puzzle> {
@@ -243,13 +231,19 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
 
     override fun removePuzzle(puzzle: Puzzle) {
         puzzles.remove(puzzle)
-        if (solver.getPuzzleID() == puzzle.ID) {
+        if (solver.getPuzzle()?.ID == puzzle.ID) {
             solver.unload()
             loadLatestPuzzle()
         }
     }
 
+    override fun setUpdateAdapterFunction(f: (puzzles: List<Puzzle>) -> Unit) {
+        updatePuzzleAdapter = f
+    }
 
+    override fun getSettings(): Settings {
+        return settings
+    }
 
 
     // SettingsListener implementation:-------------------------------------------------------
