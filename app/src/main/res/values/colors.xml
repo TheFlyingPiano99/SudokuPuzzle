@@ -1,16 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="dark_sienna">#3C1518</color>
     <color name="blood_red">#69140E</color>
     <color name="rust">#A44200</color>
     <color name="bronze">#D58936</color>
     <color name="maximum_yellow">#FFFB46</color>
-    <color name="black">#FF000000</color>
     <color name="gray">#FF666666</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="light_blue_600">#FF039BE5</color>
-    <color name="light_blue_900">#FF01579B</color>
-    <color name="light_blue_A200">#FF40C4FF</color>
-    <color name="light_blue_A400">#FF00B0FF</color>
-    <color name="black_overlay">#66000000</color>
 </resources>
