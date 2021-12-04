@@ -3,6 +3,7 @@ package bme.mobweb.lab.sudoku
 import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
@@ -16,6 +17,11 @@ import java.lang.RuntimeException
 class SettingsFragment : Fragment() {
     private var _binding : FragmentSettingsBinding? = null
     private lateinit var listener : SettingsListener
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setHasOptionsMenu(true)         // Important to handle navbar events!
+    }
 
     // This property is only valid between onCreateView and
     // onDestroyView.
@@ -31,7 +37,7 @@ class SettingsFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -57,6 +63,20 @@ class SettingsFragment : Fragment() {
         fun onHintSettingChanged(newValue : Boolean)
         fun onDarkSettingChanged(newValue : Boolean)
         fun onDeletePuzzles()
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        return when (item.itemId) {
+            R.id.action_help ->
+            {
+                findNavController().navigate(R.id.action_settingsFragment_to_helpFragment)
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 
 }

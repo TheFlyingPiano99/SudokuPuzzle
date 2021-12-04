@@ -22,4 +22,14 @@
     <style name="Theme.Sudoku.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
 
     <style name="Theme.Sudoku.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+    <style name="Theme.Sudoku.Fullscreen" parent="Theme.Sudoku">
+        <item name="android:actionBarStyle">@style/Widget.Theme.Sudoku.ActionBar.Fullscreen</item>
+        <item name="android:windowActionBarOverlay">true</item>
+        <item name="android:windowBackground">@null</item>
+    </style>
+
+    <style name="ThemeOverlay.Sudoku.FullscreenContainer" parent="">
+        <item name="fullscreenBackgroundColor">@color/light_blue_600</item>
+        <item name="fullscreenTextColor">@color/light_blue_A200</item>
+    </style>
 </resources>

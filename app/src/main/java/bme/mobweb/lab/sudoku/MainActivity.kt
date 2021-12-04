@@ -19,6 +19,7 @@ import bme.mobweb.lab.sudoku.model.Settings
 import com.google.android.material.snackbar.Snackbar
 import hu.bme.mobweb.lab.sudoku.sqlite.PersistentDataHelper
 import java.lang.RuntimeException
+import java.util.*
 import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.FinishHandler, SelectFragment.PuzzleListHolder, SettingsFragment.SettingsListener {
@@ -33,6 +34,9 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
     private var puzzles : MutableList<Puzzle> = ArrayList()
     private var solver = Solver(this)
     private var invalidatePuzzleViewFunction : (() -> Unit)? = null
+    private var shakePuzzleViewFunction : (() -> Unit)? = null
+    private var spinPuzzleViewFunction : (() -> Unit)? = null
+    private var doNumberMagicAnimationFunction : (() -> Unit)? = null
     private var updatePuzzleAdapter : ((puzzles : List<Puzzle>) -> Unit)? = null
     private val dialogBuilder = DialogBuilder(this)
     private val settings = Settings()
@@ -50,6 +54,19 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
         }
     }
 
+    private fun replacePuzzle(puzzle : Puzzle?) {
+        if (puzzle != null) {
+            val toReplace = puzzles.find { p : Puzzle -> p.ID == puzzle.ID }
+            if (toReplace != null) {
+                puzzles.remove(toReplace)
+                puzzles.add(puzzle)
+                puzzles.sortBy { p -> p.timeCreated }
+            }
+            else {
+                throw RuntimeException("Trying to replace puzzle with ID, that is not present in list!")
+            }
+        }
+    }
 
 
 
@@ -94,6 +111,10 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
             {
                 false   // Delegate to fragments
             }
+            R.id.action_help ->
+            {
+                false   // Delegate to fragments
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -115,10 +136,19 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
     // PuzzleHolder implementation:----------------------------------------------------
 
     override fun solveCurrentPuzzle() {
-        solver.solvePuzzle(this)
+        if (false == solver.getPuzzle()?.isFinished()) {
+            doNumberMagicAnimationFunction?.let { it() }
+            solver.solvePuzzle(this)
+        }
+    }
+
+    override fun giveHint() {
+        solver.giveHint()
     }
 
     override fun initNewPuzzle() {
+        spinPuzzleViewFunction?.let { it() }
+        replacePuzzle(solver.getPuzzle())
         solver.initNewPuzzle()
         solver.resetTimer()
         solver.startTimer()
@@ -131,10 +161,14 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
 
     private fun setFieldOfCurrentPuzzle(row: Int, column: Int, value: Int) {
         try {
-            solver.setFieldAsVariable(row, column, value)
-
-            if (solver.getPuzzle()?.isFinished() == true && !solver.isFinished()) {
-                dialogBuilder.buildFinishAlert()?.show()
+            val isValid = solver.setFieldAsVariable(row, column, value)
+            if (isValid == false) {
+                onInvalideEntered()
+            }
+            if (solver.getPuzzle()?.isFinished() == true && !solver.finished) { // Solved by user and not by solver.
+                solver.addToSolvingTime(solver.stopTimer())
+                solver.resetTimer()
+                dialogBuilder.buildFinishAlert(solver.getPuzzle()?.timeSpentSolving!!)?.show()
             }
         }
         catch (e : RuntimeException) {
@@ -143,12 +177,16 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
         }
     }
 
+    private fun onValueEntered(row : Int, column : Int, timeSpentSolving : Date) {
+
+    }
+
     override fun clearCurrentPuzzle() {
         solver.tryToEraseVariables()
     }
 
     override fun getNotifiedAboutSelection(row: Int, column: Int, view : View) {
-        if (solver.getPuzzle() == null || solver.isWorking() || solver.getPuzzle()?.getEvidence(row, column) == true) {
+        if (solver.getPuzzle() == null || solver.working || solver.getPuzzle()?.getEvidence(row, column) == true) {
             return      // Perform no action
         }
         dialogBuilder.buildFieldValueInput(view, row, column,
@@ -158,12 +196,29 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
                     null -> -1
                     else -> p.getValue(r, c)
             }},
-            {r, c, v -> setFieldOfCurrentPuzzle(r, c, v)}
+            {r, c, v -> setFieldOfCurrentPuzzle(r, c, v)},
+            {onInvalideEntered() }
         )?.show()
+    }
+
+    private fun onInvalideEntered() {
+        shakePuzzleViewFunction?.let { it() }
     }
 
     override fun setInvalidateViewFunction(f: () -> Unit) {
         invalidatePuzzleViewFunction = f
+    }
+
+    override fun setSpinTableFunction(f: () -> Unit) {
+        spinPuzzleViewFunction = f
+    }
+
+    override fun setDoNumberMagicAnimationFunction(f: () -> Unit) {
+        doNumberMagicAnimationFunction = f
+    }
+
+    override fun setShakeTable(f: () -> Unit) {
+        shakePuzzleViewFunction = f
     }
 
     override fun continueSolving() {
@@ -176,9 +231,8 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
     override fun breakSolving() {
         solver.stop()
         val delta = solver.stopTimer()
-        val p = solver.getPuzzle()
-        p?.addToSolvingTime(delta)
-        solver.setPuzzle(p)
+        solver.addToSolvingTime(delta)
+        replacePuzzle(solver.getPuzzle())
     }
 
 
@@ -195,14 +249,9 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
     }
 
     override fun onFinishedSolving() {
-        val copy = solver.getPuzzle()
-        copy?.addToSolvingTime(solver.stopTimer())
+        solver.addToSolvingTime(solver.stopTimer())
         solver.resetTimer()
-        val toReplace = puzzles.find { p -> p.ID == copy?.ID }
-        if (toReplace != null && copy != null) {
-            puzzles.remove(toReplace)
-            puzzles.add(copy)
-        }
+        replacePuzzle(solver.getPuzzle())
         puzzles.sortBy { p -> p.timeCreated }
         runOnUiThread {
             Snackbar.make(binding.root, "Solver finished the puzzle.", Snackbar.LENGTH_SHORT).show()
@@ -213,11 +262,16 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
     override fun onFinishedGenerating(puzzle : Puzzle) {
         puzzles.add(puzzle)
         solver.resetTimer()
+        solver.startTimer()
         runOnUiThread {
             invalidatePuzzleViewFunction?.let { it() }
             updatePuzzleAdapter?.let { it(puzzles) }
-            Snackbar.make(binding.root, "New puzzle created.", Snackbar.LENGTH_SHORT).show()
         }
+    }
+
+    override fun onFinishedGeneratingHint(puzzle: Puzzle) {
+        replacePuzzle(puzzle)
+        invalidatePuzzleViewFunction?.let { it() }
     }
 
     // PuzzleListItemListener implementation:------------------------------------------------------

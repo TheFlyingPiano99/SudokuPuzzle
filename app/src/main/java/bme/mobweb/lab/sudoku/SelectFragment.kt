@@ -96,6 +96,11 @@ class SelectFragment : Fragment(), PuzzleAdapter.PuzzleListItemListener {
                 findNavController().navigate(R.id.action_SecondFragment_to_settingsFragment)
                 true
             }
+            R.id.action_help ->
+            {
+                findNavController().navigate(R.id.action_SecondFragment_to_helpFragment)
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }

@@ -8,7 +8,6 @@ import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
-import androidx.appcompat.app.AppCompatDelegate
 import bme.mobweb.lab.sudoku.R
 import bme.mobweb.lab.sudoku.model.Puzzle
 import kotlin.math.min
@@ -37,7 +36,7 @@ class PuzzleView(context : Context, attributeSet : AttributeSet) : View(context,
 
     private val fieldNegativeTextPaint = Paint().apply {
         style = Paint.Style.STROKE
-        color = Color.WHITE
+        color = 0xFFBBBBBB.toInt()
         textAlign = Paint.Align.CENTER
         textSize = resources.getDimensionPixelSize(R.dimen.puzzleFieldFontSize).toFloat()
     }
@@ -54,7 +53,7 @@ class PuzzleView(context : Context, attributeSet : AttributeSet) : View(context,
 
     private val invalidSelectedFillPaint = Paint().apply {
         style = Paint.Style.FILL
-        color = (Color.RED + 0x00008888).toInt()
+        color = (Color.RED + 0x00008888)
     }
 
     private val evidenceFillPaint = Paint().apply {
@@ -64,7 +63,7 @@ class PuzzleView(context : Context, attributeSet : AttributeSet) : View(context,
 
     private val invalidEvidenceFillPaint = Paint().apply {
         style = Paint.Style.FILL
-        color = (Color.GRAY - 0x00008888).toInt()
+        color = (Color.GRAY - 0x00008888)
     }
 
     private val fieldsInRow = 9
@@ -114,7 +113,6 @@ class PuzzleView(context : Context, attributeSet : AttributeSet) : View(context,
                             true -> invalidEvidenceFillPaint
                             else -> invalidFillPaint
                         }
-                        else -> null
                     }
                     else -> null
                 }

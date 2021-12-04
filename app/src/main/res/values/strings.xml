@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">Sudoku</string>
-    <string name="action_settings">Settings</string>
+    <string name="settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
     <string name="puzzle_fragment_label">Sudoku puzzle</string>
     <string name="select_fragment_label">Select puzzle</string>
@@ -41,4 +41,22 @@
     <string name="delete_puzzles">Delete puzzles</string>
     <string name="dark_theme">Dark theme</string>
     <string name="highlight_invalid_fields">Highlight invalid fields</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="help_rules">
+        You are playing a sudoku solving puzzle game.
+        Enter values between 1 and 9 into the grid.
+        Some fields have already a fixed value in them. These fields have different color.
+        You can not modify these values.
+        Repetition of values is not allowed in any of the rows or columns of the grid.
+        Also no repetition is allowed in any of the 3x3 squares highlighted by stiffer grid lines.
+        The goal is to fill every empty field.
+        If you find solving the puzzle too hard, you can take hints from the solver or you can let the program to fully finish it.
+        Have fun solving!</string>
+    <string name="help">Help</string>
+    <string name="title_activity_main">Sudoku</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="new_puzzle">New puzzle</string>
+    <string name="hint">Hint</string>
 </resources>

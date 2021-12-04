@@ -7,6 +7,9 @@ import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import androidx.dynamicanimation.animation.DynamicAnimation
+import androidx.dynamicanimation.animation.SpringAnimation
+import androidx.dynamicanimation.animation.SpringForce
 import androidx.navigation.fragment.findNavController
 import bme.mobweb.lab.sudoku.customView.PuzzleView
 import bme.mobweb.lab.sudoku.databinding.FragmentPuzzleBinding
@@ -39,6 +42,9 @@ class PuzzleFragment : Fragment(), PuzzleView.PuzzleDataProvider {
         }
         handler = context
         handler.setInvalidateViewFunction { invalidateView() }
+        handler.setShakeTable { shakeTable() }
+        handler.setSpinTableFunction { spinTable() }
+        handler.setDoNumberMagicAnimationFunction { doNumberMagicAnimation() }
     }
 
     // This property is only valid between onCreateView and
@@ -52,7 +58,6 @@ class PuzzleFragment : Fragment(), PuzzleView.PuzzleDataProvider {
 
         _binding = FragmentPuzzleBinding.inflate(inflater, container, false)
         return binding.root
-
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -64,11 +69,11 @@ class PuzzleFragment : Fragment(), PuzzleView.PuzzleDataProvider {
         binding.selectPuzzleButton.setOnClickListener {
             findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment)
         }
-
         binding.initNewPuzzleButton.setOnClickListener {
-                view ->
             handler.initNewPuzzle()
-            invalidateView()
+        }
+        binding.hintButton.setOnClickListener {
+            handler.giveHint()
         }
 
     }
@@ -92,11 +97,15 @@ class PuzzleFragment : Fragment(), PuzzleView.PuzzleDataProvider {
 
     interface PuzzleHolder {
         fun solveCurrentPuzzle()
-        fun initNewPuzzle()
+        fun giveHint()
         fun getCurrentPuzzle(): Puzzle?
         fun clearCurrentPuzzle()
         fun getNotifiedAboutSelection(row: Int, column: Int, view: View)
         fun setInvalidateViewFunction(f : () -> Unit)
+        fun setSpinTableFunction(f : () -> Unit)
+        fun setDoNumberMagicAnimationFunction(f : () -> Unit)
+        fun setShakeTable(f : () -> Unit)
+        fun initNewPuzzle()
         fun continueSolving()
         fun breakSolving()
     }
@@ -115,6 +124,37 @@ class PuzzleFragment : Fragment(), PuzzleView.PuzzleDataProvider {
         }
     }
 
+    private fun shakeTable() {
+        if (isForeground) {
+            val animation = SpringAnimation(binding.puzzleView, DynamicAnimation.TRANSLATION_X, 0f)
+            animation.setStartValue(50f)
+            animation.spring.dampingRatio = SpringForce.DAMPING_RATIO_HIGH_BOUNCY
+            animation.spring.stiffness = SpringForce.STIFFNESS_HIGH
+            animation.start()
+        }
+    }
+
+    private fun spinTable() {
+        if (isForeground) {
+            val animation = SpringAnimation(binding.puzzleView, DynamicAnimation.ROTATION, 0f)
+            animation.setStartValue(180f)
+            animation.spring.dampingRatio = SpringForce.DAMPING_RATIO_LOW_BOUNCY
+            animation.spring.stiffness = SpringForce.STIFFNESS_LOW
+            animation.start()
+        }
+    }
+
+    private fun doNumberMagicAnimation() {
+        if (isForeground) {
+            val animationX = SpringAnimation(binding.puzzleView, DynamicAnimation.SCALE_X, 1f)
+            animationX.setStartValue(0.1f)
+            val animationY = SpringAnimation(binding.puzzleView, DynamicAnimation.SCALE_Y, 1f)
+            animationY.setStartValue(0.1f)
+            animationX.start()
+            animationY.start()
+        }
+    }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
@@ -123,6 +163,11 @@ class PuzzleFragment : Fragment(), PuzzleView.PuzzleDataProvider {
             R.id.action_settings ->
             {
                 findNavController().navigate(R.id.action_FirstFragment_to_settingsFragment)
+                true
+            }
+            R.id.action_help ->
+            {
+                findNavController().navigate(R.id.action_FirstFragment_to_helpFragment)
                 true
             }
             else -> super.onOptionsItemSelected(item)

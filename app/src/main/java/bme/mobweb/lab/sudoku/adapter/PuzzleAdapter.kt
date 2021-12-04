@@ -35,39 +35,7 @@ class PuzzleAdapter(private val listener: PuzzleListItemListener) :
         holder.binding.selectButton.setOnClickListener {
             listener.onItemSelectClicked(item)
         }
-        /*
-        holder.binding.ivIcon.setImageResource(getImageResource(puzzle.category))
-        holder.binding.cbIsBought.isChecked = puzzle.isBought
-        holder.binding.tvDescription.text = puzzle.description
-        holder.binding.tvCategory.text = puzzle.category.name
-        holder.binding.tvPrice.text = "${puzzle.estimatedPrice} Ft"
-        */
-
-        /*
-            holder.binding.cbIsBought.setOnCheckedChangeListener { buttonView, isChecked ->
-                puzzle.isBought = isChecked
-                listener.onItemChanged(puzzle)
-            }
-            holder.binding.ibRemove.setOnClickListener {
-                    buttonView ->
-                val n = items.indexOf(puzzle)
-                items.remove(puzzle)
-                listener.onItemRemoved(puzzle)
-                notifyItemRemoved(n)
-            }
-         */
     }
-
-    /*
-    @DrawableRes()
-    private fun getImageResource(category: ShoppingItem.Category): Int {
-        return when (category) {
-            Puzzle.Category.FOOD -> R.drawable.groceries
-            Puzzle.Category.ELECTRONIC -> R.drawable.lightning
-            Puzzle.Category.BOOK -> R.drawable.open_book
-        }
-    }
-    * */
 
     override fun getItemCount(): Int = items.size
 

@@ -17,6 +17,9 @@
         <action
             android:id="@+id/action_FirstFragment_to_settingsFragment"
             app:destination="@id/settingsFragment" />
+        <action
+            android:id="@+id/action_FirstFragment_to_helpFragment"
+            app:destination="@id/helpFragment" />
     </fragment>
     <fragment
         android:id="@+id/SecondFragment"
@@ -30,13 +33,31 @@
         <action
             android:id="@+id/action_SecondFragment_to_settingsFragment"
             app:destination="@id/settingsFragment" />
+        <action
+            android:id="@+id/action_SecondFragment_to_helpFragment"
+            app:destination="@id/helpFragment" />
     </fragment>
     <fragment
         android:id="@+id/settingsFragment"
         android:name="bme.mobweb.lab.sudoku.SettingsFragment"
-        android:label="SettingsFragment" >
+        android:label="@string/settings" >
         <action
             android:id="@+id/action_settingsFragment_to_FirstFragment"
             app:destination="@id/FirstFragment" />
+        <action
+            android:id="@+id/action_settingsFragment_to_helpFragment"
+            app:destination="@id/helpFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/helpFragment"
+        android:name="bme.mobweb.lab.sudoku.HelpFragment"
+        android:label="@string/help"
+        tools:layout="@layout/fragment_help" >
+        <action
+            android:id="@+id/action_helpFragment_to_FirstFragment"
+            app:destination="@id/FirstFragment" />
+        <action
+            android:id="@+id/action_helpFragment_to_settingsFragment"
+            app:destination="@id/settingsFragment" />
     </fragment>
 </navigation>

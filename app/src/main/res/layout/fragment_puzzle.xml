@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:weightSum="9"
+    android:weightSum="10"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".PuzzleFragment"
     xmlns:android="http://schemas.android.com/apk/res/android">
@@ -15,12 +15,28 @@
         android:textSize="20sp"
         android:layout_weight="7" />
 
-    <Button
-        android:id="@+id/solveButton"
+    <LinearLayout xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:text="@string/solve" />
+        android:orientation="horizontal"
+        android:weightSum="2"
+        >
+        <Button
+            android:id="@+id/solveButton"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="@string/solve"
+            android:layout_marginEnd="5dp"/>
+        <Button
+            android:id="@+id/hintButton"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="@string/hint"
+            android:layout_marginStart="5dp"/>
+    </LinearLayout>
 
     <Button
         android:id="@+id/selectPuzzleButton"
@@ -29,13 +45,16 @@
         android:layout_weight="1"
         android:text="@string/select_puzzle" />
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
+    <Button
         android:id="@+id/initNewPuzzleButton"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:clickable="true"
         android:focusable="true"
-        android:src="@android:drawable/ic_input_add" />
+        android:layout_weight="1"
+        android:text="@string/new_puzzle"
+        />
+
 
 </LinearLayout>
 

@@ -204,15 +204,14 @@ open class Puzzle() {
 
     fun checkValidityOfField(row : Int, column : Int, resolveRelated : Boolean) : Boolean {
         val wasValid = validity[row][column]
-        var isValid = true
-        if (grid[row][column] == -1) {
-            isValid = true
-            validity[row][column] = isValid
+        if (grid[row][column] == -1) {  // Empty fields are always valid.
+            validity[row][column] = true
             if (!wasValid && resolveRelated) {
                 checkAllRelated(row, column)
             }
-            return true                 // Not filled
+            return true
         }
+        var isValid = true
         for (r in 0..8) {
             if (r != row && grid[r][column] == grid[row][column]) {  // Equal value in same column
                 isValid = false

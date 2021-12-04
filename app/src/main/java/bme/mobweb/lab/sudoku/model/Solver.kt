@@ -3,21 +3,42 @@ package bme.mobweb.lab.sudoku.model
 import android.util.Log
 import java.lang.RuntimeException
 import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.timer
 import kotlin.concurrent.withLock
 import kotlin.random.Random
 
 
-class Solver(handler : FinishHandler) {
-    private var puzzle : Puzzle? = null
+class Solver(private var handler: FinishHandler) {
+    @Volatile private var puzzle : Puzzle? = null
     private val puzzleLock = ReentrantLock()
     private val finishedLock = ReentrantLock()
     private val workingLock = ReentrantLock()
     private val killLock = ReentrantLock()
-    private var finished = false
-    private var working = false
     private val maxAllowedIteration = 1000
     private var timerStart = -1L
+
+    var finished : Boolean = false
+        get() {
+            return finishedLock.withLock {
+                return@withLock field
+            }
+        }
+        private set(value) {
+            finishedLock.withLock {
+                field = value
+            }
+        }
+
+    var working : Boolean = false
+        get() {
+            return workingLock.withLock {
+                return@withLock field
+            }
+        }
+        private set(value) {
+            workingLock.withLock {
+                field = value
+            }
+        }
 
     private var kill = false
         get () {
@@ -30,48 +51,56 @@ class Solver(handler : FinishHandler) {
                 field = value
             }
         }
-    private var handler = handler
     private var workThread : Thread? = null     // Only one workThread is acceptable at the same time!
 
 
     fun initNewPuzzle() {
-        if (isWorking()) {
+        if (working) {
             kill = true
             workThread?.join()
         }
         workThread = Thread {
-            generatingAlgorithm()
+            puzzleLock.withLock {
+                generatingAlgorithm()
+            }
         }
         workThread?.start()
     }
 
     fun setSelectedPuzzle(puzzle : Puzzle) {
-        if (isWorking()) {
+        if (working) {
             kill = true
             workThread?.join()
         }
-        if (puzzle == this.puzzle) {
-            return
+        puzzleLock.withLock {
+            if (puzzle == this.puzzle) {
+                return
+            }
+            setPuzzle(puzzle)
+            checkValidity()
+            finished = puzzle.isFinished()
         }
-        setPuzzle(puzzle)
-        checkValidity()
-        setFinished(puzzle.isFinished())
     }
 
 
     fun solvePuzzle(handler : FinishHandler) {
-        if (puzzle == null || isWorking() || puzzle?.isFinished() == true) {
+        if (puzzle == null || working || puzzle?.isFinished() == true) {
             return
         }
-        setWorking(true)
-        setFinished(false)
-        kill = false
+        working = true
+        finished = false
+        kill = true
         workThread?.join()  // For safety
+        kill = false
         workThread = Thread {
+            puzzleLock.withLock {
             val solution = solvingAlgorithm(getPuzzle()!!,true)
             if (solution != null) {
-                setPuzzle(solution)
-                handler.onFinishedSolving()
+                    if (solution != null) {
+                        setPuzzle(solution)
+                        handler.onFinishedSolving()
+                    }
+                }
             }
         }
         workThread?.start()
@@ -81,20 +110,25 @@ class Solver(handler : FinishHandler) {
         toSolve.ereaseVariables()
         var r = 0
         var c = 0
-        var path = ArrayList<Puzzle>()
+        val path = ArrayList<Puzzle>()
 
         val minValue = 1
         val maxValue = 9
 
         var iteration = 0
-        var localFinished = false
+        val localFinished = false
         while (!localFinished && iteration < maxAllowedIteration) {
-            if (c == 8 && r == 8) {
-                Log.d("Solver", "End of line.")
-            }
+            var localKill = false
             if (kill) {
-                setWorking(false)
-                kill = false
+                workingLock.withLock {
+                    if (kill) {
+                        working = false
+                        kill = false
+                        localKill = true
+                    }
+                }
+            }
+            if (localKill) {
                 break
             }
             var validCandidate = true
@@ -117,8 +151,11 @@ class Solver(handler : FinishHandler) {
                         if (validCandidate) {
                             path.add(Puzzle(toSolve))
                             if (tellUpdates) {
-                                setPuzzle(toSolve)
-                                handler.onStateChange()
+                                toSolve.checkValidityOfAll()
+                                puzzleLock.withLock {
+                                    setPuzzle(toSolve)
+                                    handler.onStateChange()
+                                }
                             }
                             break
                         }
@@ -133,8 +170,8 @@ class Solver(handler : FinishHandler) {
                         c++
                     } else if (c == toSolve.getNumberOgFieldsInColumn() - 1) {    // in last row
                         if (r == toSolve.getNumberOgFieldsInRow() - 1) {    // Finished
-                            setFinished(true)
-                            setWorking(false)
+                            finished = true
+                            working = false
                             return toSolve
                         }
                         c = 0
@@ -148,7 +185,7 @@ class Solver(handler : FinishHandler) {
                 while (isEvidence) {
                     if (c == 0) {
                         if (r == 0) {
-                            setWorking(false)
+                            working = false
                             return null // no solution!!!
                         }
                         c = toSolve.getNumberOgFieldsInColumn() - 1
@@ -160,7 +197,7 @@ class Solver(handler : FinishHandler) {
                 }
             }
         }
-        setWorking(false)
+        working = false
         return null
     }
 
@@ -169,11 +206,11 @@ class Solver(handler : FinishHandler) {
         val noOfEvidences = 25
         var noOfPreEvidence = 3
         var generationAttempt = 0
-        val maxGenerationAttempts = 2
-        setFinished(false)
-        while (!isFinished()) {
+        val maxGenerationAttempts = 5
+        finished = false
+        while (!finished) {
             initVal = Puzzle()
-            if (generationAttempt > 5) {
+            if (generationAttempt > maxGenerationAttempts) {
                 noOfPreEvidence = 1
                 Log.d("Solver", "Too many generation attempts.")
             }
@@ -210,10 +247,14 @@ class Solver(handler : FinishHandler) {
                 e++
             }
         }
+
         initVal?.ereaseVariables()
-        setFinished(false)
-        setPuzzle(initVal)
-        handler.onFinishedGenerating(initVal!!)
+        initVal?.checkValidityOfAll()
+        finished = false
+        puzzleLock.withLock {
+            setPuzzle(initVal)
+            handler.onFinishedGenerating(initVal!!)
+        }
     }
 
     fun getPuzzle() : Puzzle? {
@@ -223,31 +264,20 @@ class Solver(handler : FinishHandler) {
         }
     }
 
-    fun setPuzzle(p : Puzzle?) {
-        puzzle = when (p) {
-            null -> null
-            else -> Puzzle(p)
+    private fun setPuzzle(p : Puzzle?) {
+        puzzleLock.withLock {
+            puzzle = when (p) {
+                null -> null
+                else -> Puzzle(p)
+            }
         }
     }
 
-    fun checkValidity() : Boolean? {
-        return getPuzzle()?.checkValidityOfAll()
-    }
 
-    fun isFinished() : Boolean {
-        return finished
-    }
-
-    fun setFinished(b : Boolean) {
-        finished = b
-    }
-
-    fun isWorking() : Boolean {
-        return working
-    }
-
-    private fun setWorking(b : Boolean){
-        working = b
+    private fun checkValidity() : Boolean? {
+        puzzleLock.withLock {
+            return getPuzzle()?.checkValidityOfAll()
+        }
     }
 
     fun stop() {
@@ -256,11 +286,13 @@ class Solver(handler : FinishHandler) {
     }
 
     fun unload() {
-        if (isWorking()) {
+        if (working) {
             kill = true
             workThread?.join()
         }
-        setPuzzle(null)
+        puzzleLock.withLock {
+            setPuzzle(null)
+        }
     }
 
     fun resetTimer() {
@@ -274,35 +306,93 @@ class Solver(handler : FinishHandler) {
     }
 
     fun stopTimer() : Long {
-        if (timerStart > 0) {
-            return System.currentTimeMillis() - timerStart
-        }
-        else {
-            return 0L
+        return if (timerStart > 0) {
+            System.currentTimeMillis() - timerStart
+        } else {
+            0L
         }
     }
 
+    // Called from UI
+    // Usage not implemented
     fun tryToEraseVariables() {
-        if (isWorking()) {
+        if (working) {
             return
         }
         workThread?.join()
-        val p = getPuzzle()
-        p?.ereaseVariables()
-        setPuzzle(p)
+        puzzleLock.withLock {
+            val p = getPuzzle()
+            p?.ereaseVariables()
+            setPuzzle(p)
+        }
     }
 
-    fun setFieldAsVariable(row : Int, column : Int, value : Int) {
-        val p = getPuzzle()
-        p?.setFieldAsVariable(row, column, value)
-        p?.checkValidityOfField(row, column, true)
-        setPuzzle(p)
+    fun setFieldAsVariable(row : Int, column : Int, value : Int) : Boolean? {
+        var isValid : Boolean? = false
+        puzzleLock.withLock {
+            val p = getPuzzle()
+            p?.setFieldAsVariable(row, column, value)
+            isValid = p?.checkValidityOfField(row, column, true)
+            setPuzzle(p)
+        }
+        return isValid
+    }
+
+    fun addToSolvingTime(delta : Long) {
+        puzzleLock.withLock {
+            val p = getPuzzle()
+            p?.addToSolvingTime(delta)
+            setPuzzle(p)
+        }
+    }
+
+    fun giveHint() {
+        if (!working) {
+            puzzleLock.withLock {
+                if (!working) {
+                    working = true
+                    workThread = Thread  {
+                        val toHint = getPuzzle()
+                        if (toHint?.isFinished() != false) {
+                            working = false
+                            return@Thread
+                        }
+                        val solved = hintAlgorithm(toHint)
+                        setPuzzle(solved)
+                        handler.onFinishedGeneratingHint(solved)
+                        working = false
+                    }
+                    workThread?.start()
+                }
+            }
+        }
+        else {
+            Log.d("Solver", "Too busy generating hints.")
+        }
+    }
+
+    private fun hintAlgorithm(toHint : Puzzle) : Puzzle {
+        kill = false
+        val solved = solvingAlgorithm(Puzzle(toHint), false)
+            ?: throw RuntimeException("Failed to solve puzzle, while trying to generate hint.")
+        var r: Int
+        var c: Int
+        while (true) {
+            r = Random.nextInt(0, 9)
+            c = Random.nextInt(0, 9)
+            if (toHint.getValue(r, c) == -1 && !toHint.getEvidence(r, c)) {
+                toHint.setFieldAsVariable(r, c, solved.getValue(r, c))
+                break
+            }
+        }
+        return toHint
     }
 
     interface FinishHandler {
         fun onStateChange()
         fun onFinishedSolving()
         fun onFinishedGenerating(puzzle : Puzzle)
+        fun onFinishedGeneratingHint(puzzle : Puzzle)
     }
 
 }

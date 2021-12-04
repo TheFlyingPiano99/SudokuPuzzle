@@ -4,17 +4,18 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".SelectFragment"
+    tools:context=".SplashActivity"
     android:orientation="vertical"
-    android:layout_weight="9">
+    android:weightSum="1">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvMain"
+    <ImageView
+        android:id="@+id/splash_sudoku_logo"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        tools:listitem="@layout/puzzle_list"
-        android:layout_weight="8"/>
-
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="50dp"
+        android:src="@drawable/ic_sudoku_icon"
+        >
+    </ImageView>
+    
 </LinearLayout>
-
-
