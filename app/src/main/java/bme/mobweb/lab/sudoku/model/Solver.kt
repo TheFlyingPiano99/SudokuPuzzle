@@ -55,16 +55,20 @@ class Solver(private var handler: FinishHandler) {
 
 
     fun initNewPuzzle() {
-        if (working) {
-            kill = true
-            workThread?.join()
-        }
-        workThread = Thread {
+        if (!working) {
             puzzleLock.withLock {
-                generatingAlgorithm()
+                if (!working) {
+                    working = true
+                    workThread = Thread {
+                        puzzleLock.withLock {
+                            generatingAlgorithm()
+                            working = false
+                        }
+                    }
+                    workThread?.start()
+                }
             }
         }
-        workThread?.start()
     }
 
     fun setSelectedPuzzle(puzzle : Puzzle) {

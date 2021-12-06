@@ -271,7 +271,9 @@ class MainActivity : AppCompatActivity(), PuzzleFragment.PuzzleHolder, Solver.Fi
 
     override fun onFinishedGeneratingHint(puzzle: Puzzle) {
         replacePuzzle(puzzle)
-        invalidatePuzzleViewFunction?.let { it() }
+        runOnUiThread {
+            invalidatePuzzleViewFunction?.let { it() }
+        }
     }
 
     // PuzzleListItemListener implementation:------------------------------------------------------
